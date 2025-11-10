@@ -38,6 +38,11 @@ private:
     int score;
 
     std::string gameOverMessage;
+    bool lastVictory = false; // track outcome to colorize final screen
+
+    // Countdown timer (chrono) for Playing state
+    float timeLeftSeconds = 0.f;                 // current remaining time in seconds
+    static constexpr float initialTimeSeconds = 5.f * 60.f; // 5 minutes
 
     // Repeated, scrolling background
     sf::Texture bgTexture;

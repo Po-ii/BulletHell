@@ -2,6 +2,10 @@
 #include "Game.hpp"
 #include <cmath>
 #include <sstream>
+#include <SFML/System.hpp>
+#include <iomanip>
+
+typedef unsigned int Uint32;
 
 Game::Game()
     : window(sf::VideoMode({ 960u, 720u }), "Bullet Hell - Mini Touhou")
@@ -105,6 +109,16 @@ void Game::update(float dt) {
     case State::Playing:
         player.update(dt);
 
+        // update countdown timer
+        if (timeLeftSeconds > 0.f) {
+            timeLeftSeconds -= dt;
+            if (timeLeftSeconds <= 0.f) {
+                timeLeftSeconds = 0.f;
+                endGame(true); // survived the timer -> win
+                return; // avoid further game logic this frame
+            }
+        }
+
         // Tir du joueur
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space) && player.canShoot()) {
             lasers.spawn(player.getPosition());
@@ -120,7 +134,7 @@ void Game::update(float dt) {
         // Collisions laser -> ennemi
         for (auto& e : enemies) {
             if (lasers.checkCollision(e.getShape())) {
-                e.takeDamage(2);
+                e.takeDamage(3);
                 if (e.getHP() <= 0) endGame(true); // victoire
             }
         }
@@ -153,14 +167,72 @@ void Game::render() {
         // For now, just return to avoid drawing text with an invalid font
         return;
     }
+
+    // helper: compute text block width/height without accessing FloatRect members
+    auto computeTextDims = [](const sf::Text& txt) -> sf::Vector2f {
+        const sf::Font* font = &txt.getFont();
+        if (!font) return { 0.f, 0.f };
+
+        const sf::String& s = txt.getString();
+        unsigned int charSize = txt.getCharacterSize();
+
+        float maxW = 0.f;
+        float curW = 0.f;
+        unsigned int lines = 1;
+        uint32_t prev = 0;
+
+        for (std::size_t i = 0; i < s.getSize(); ++i) {
+            Uint32 c = s[i];
+            if (c == '\n') {
+                if (curW > maxW) maxW = curW;
+                curW = 0.f;
+                prev = 0;
+                ++lines;
+                continue;
+            }
+
+            const sf::Glyph& g = font->getGlyph(c, charSize, false);
+            if (prev) curW += font->getKerning(prev, c, charSize);
+            curW += g.advance;
+            prev = c;
+        }
+        if (curW > maxW) maxW = curW;
+
+        float height = font->getLineSpacing(charSize) * static_cast<float>(lines);
+        return { maxW, height };
+    };
+
+    // helper to center text horizontally at given y using computed dims
+    auto centerText = [&](sf::Text& txt, float y) {
+        sf::Vector2f d = computeTextDims(txt);
+        txt.setOrigin(sf::Vector2f(d.x * 0.5f, d.y * 0.5f));
+        txt.setPosition(sf::Vector2f(static_cast<float>(window.getSize().x) * 0.5f, y));
+    };
+
     sf::Text t(f, "");
 
     switch (state) {
     case State::MainMenu: {
-        t.setString("Mini Bullet Hell\nPress SPACE to start\nZQSD or WASD to move\n Space to shoot");
-        t.setCharacterSize(32);
-        t.setFillColor(sf::Color::White);
-        t.setPosition(sf::Vector2f(180.f, 260.f));
+        // Title (cyan)
+        t.setString("EyeStorm");
+        t.setCharacterSize(64);
+        t.setFillColor(sf::Color(100, 220, 255)); // cyan
+        centerText(t, static_cast<float>(window.getSize().y) * 0.22f);
+        window.draw(t);
+
+        // Short synopsis (multi-line) (light gray)
+        t.setCharacterSize(20);
+        t.setFillColor(sf::Color(200, 200, 200));
+        t.setString("Synopsis:\nYou are the last pilot defending humanity\ntrying to make it back to your home planet Veyra.\nSuddenly attacked by an onslaught of eye-like enemies.\nDodge patterns and eliminate the threat.");
+        // center the block a bit lower
+        centerText(t, static_cast<float>(window.getSize().y) * 0.48f);
+        window.draw(t);
+
+        // Controls / prompt (yellow)
+        t.setCharacterSize(18);
+        t.setFillColor(sf::Color(255, 215, 0)); // gold
+        t.setString("Controls: ZQSD (Azety) or WASD (Qwerty) to move  -  SPACE to shoot\nPress SPACE to start");
+        centerText(t, static_cast<float>(window.getSize().y) * 0.78f);
         window.draw(t);
         break;
     }
@@ -171,29 +243,70 @@ void Game::render() {
         for (auto& e : enemies) e.draw(window);
         player.draw(window);
 
+        // draw countdown timer (top center)
+        {
+            std::ostringstream ss;
+            int total = static_cast<int>(std::ceil(timeLeftSeconds));
+            int minutes = total / 60;
+            int seconds = total % 60;
+            ss << std::setw(2) << std::setfill('0') << minutes << ":" << std::setw(2) << std::setfill('0') << seconds;
+            t.setCharacterSize(24);
+            t.setFillColor(sf::Color(255, 215, 0)); // gold
+            t.setString(ss.str());
+            centerText(t, 30.f);
+            window.draw(t);
+        }
+
         // UI
         t.setCharacterSize(20);
-        t.setFillColor(sf::Color::White);
 
+        // Player HP (green)
+        t.setFillColor(sf::Color(0, 200, 0));
         t.setString("Player HP: " + std::to_string(player.getHP()));
         t.setPosition(sf::Vector2f(10.f, 10.f)); window.draw(t);
 
+        // Enemy HP (orange)
+        t.setFillColor(sf::Color(255, 165, 0));
         t.setString("Enemy HP: " + std::to_string(enemies[0].getHP()));
         t.setPosition(sf::Vector2f(700.f, 10.f)); window.draw(t);
 
         break;
 
     case State::GameOver: {
+        // draw scene behind final screen (keep bullets/enemies/player visible)
         bullets.render(window);
         lasers.render(window);
         for (auto& e : enemies) e.draw(window);
         player.draw(window);
 
+        // overlay dark translucent rectangle
+        sf::RectangleShape overlay;
+        overlay.setSize(sf::Vector2f(static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)));
+        overlay.setFillColor(sf::Color(0, 0, 0, 160));
+        window.draw(overlay);
+
+        // Result title (centered) - color depends on outcome
+        t.setCharacterSize(48);
+        if (lastVictory) t.setFillColor(sf::Color(100, 255, 150)); // light green
+        else t.setFillColor(sf::Color(255, 100, 100)); // light red
         t.setString(gameOverMessage);
-        t.setCharacterSize(36);
-        t.setFillColor(sf::Color::White);
-        t.setPosition(sf::Vector2f(200.f, 300.f));
+        centerText(t, static_cast<float>(window.getSize().y) * 0.38f);
         window.draw(t);
+
+        // Score / summary (light gray)
+        t.setCharacterSize(20);
+        t.setFillColor(sf::Color(200,200,200));
+        t.setString("Final Score: " + std::to_string(score));
+        centerText(t, static_cast<float>(window.getSize().y) * 0.52f);
+        window.draw(t);
+
+        // Restart prompt (yellow)
+        t.setCharacterSize(18);
+        t.setFillColor(sf::Color(255, 215, 0));
+        t.setString("Press SPACE to restart");
+        centerText(t, static_cast<float>(window.getSize().y) * 0.7f);
+        window.draw(t);
+
         break;
     }
     }
@@ -213,6 +326,9 @@ void Game::startGame() {
     spawnTimer = 0.f;
     score = 0;
 
+    // start the 5-minute countdown
+    timeLeftSeconds = Game::initialTimeSeconds;
+
     // Reset ennemi
     enemies.clear();
     enemies.emplace_back(sf::Vector2f(480.f, 120.f));
@@ -220,5 +336,6 @@ void Game::startGame() {
 
 void Game::endGame(bool victory) {
     state = State::GameOver;
-    gameOverMessage = victory ? "YOU WIN! Press SPACE to restart" : "GAME OVER! Press SPACE to restart";
+    lastVictory = victory;
+    gameOverMessage = victory ? "Congratulations! You made it safe back home." : "GAME OVER! YOU DIED!";
 }
