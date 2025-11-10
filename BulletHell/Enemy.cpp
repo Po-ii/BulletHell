@@ -5,8 +5,8 @@
 Enemy::Enemy(const sf::Vector2f& p)
     : pos(p), spiralAngle(0.f), shootTimer(0.f), patternType(0), shotsBeforePause(3)
 {
-    shape.setRadius(14.f);
-    shape.setOrigin(sf::Vector2f(14.f, 14.f));
+    shape.setRadius(30.f);
+    shape.setOrigin(sf::Vector2f(30.f, 30.f));
     shape.setPosition(pos);
     shape.setFillColor(sf::Color::Magenta);
     // interval initial aléatoire 0.5-1.5s

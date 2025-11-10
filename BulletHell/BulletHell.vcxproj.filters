@@ -39,6 +39,12 @@
     <ClInclude Include="BulletManager.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Laser.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LaserManager.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp">
@@ -66,6 +72,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BulletManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Laser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LaserManager.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

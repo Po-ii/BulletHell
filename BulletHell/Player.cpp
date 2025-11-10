@@ -3,12 +3,38 @@
 #include <SFML/Window/Keyboard.hpp>
 #include <algorithm>
 
-Player::Player() {
+Player::Player()
+    : sprite(texture) // construct sprite from the texture member (texture is declared before sprite)
+{
     pos = { 480.f, 620.f };
-    speed = 320.f;
+    speed = 300.f;
     shape.setRadius(8.f);
     shape.setOrigin(sf::Vector2f(8.f, 8.f));
     shape.setFillColor(sf::Color::Cyan);
+
+    // Attempt to load a player sprite asset. Place the image at assets/player.png.
+    // If loading fails we keep the simple circle fallback.
+    if (texture.loadFromFile("assets/shipsheetparts.png")) {
+        sprite.setTexture(texture);
+        auto ts = texture.getSize();
+        // convert once to float to avoid repeated casts / narrowing warnings
+        float tsfX = static_cast<float>(ts.x);
+        float tsfY = static_cast<float>(ts.y);
+
+        // set origin to sprite center so positioning aligns with `pos`
+        sprite.setOrigin(sf::Vector2f(tsfX / 2.f, tsfY / 2.f));
+
+        // scale sprite to match the circle size (diameter = 16)
+        const float desiredSize = 16.f;
+        if (ts.x > 0 && ts.y > 0) {
+            float scaleX = desiredSize / tsfX;
+            float scaleY = desiredSize / tsfY;
+            sprite.setScale(sf::Vector2f(scaleX, scaleY));
+        }
+        spriteLoaded = true;
+    } else {
+        spriteLoaded = false;
+    }
 }
 
 void Player::update(float dt) {
@@ -18,15 +44,23 @@ void Player::update(float dt) {
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::A)) moveLeft(dt);
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Scancode::D)) moveRight(dt);
 
+    if (shootTimer > 0.f) shootTimer -= dt;
+
     // clamp to screen area (assuming 960x720)
     pos.x = std::clamp(pos.x, 10.f, 960.f - 10.f);
     pos.y = std::clamp(pos.y, 10.f, 720.f - 10.f);
 }
 
 void Player::draw(sf::RenderTarget& rt) const {
-    sf::CircleShape s = shape;
-    s.setPosition(pos);
-    rt.draw(s);
+    if (spriteLoaded) {
+        sf::Sprite s = sprite;
+        s.setPosition(pos);
+        rt.draw(s);
+    } else {
+        sf::CircleShape s = shape;
+        s.setPosition(pos);
+        rt.draw(s);
+    }
 }
 
 void Player::reset(const sf::Vector2f& p) {

@@ -4,11 +4,12 @@
 #include "Bullet.hpp"
 #include "Enemy.hpp"
 #include "UI.hpp"
+#include "LaserManager.hpp"
 
 class Game {
 public:
     enum class State { MainMenu, Playing, GameOver };
-
+    LaserManager lasers;
     Game();
     ~Game();
     void run();
@@ -19,9 +20,8 @@ private:
     void render();
 
     void updateMenu();
-    void renderMenu();
     void startGame();
-    void endGame();
+    void endGame(bool victory);
 
     sf::RenderWindow window;
     State state;
@@ -36,4 +36,13 @@ private:
     float spawnTimer;
     float spawnInterval;
     int score;
+
+    std::string gameOverMessage;
+
+    // Repeated, scrolling background
+    sf::Texture bgTexture;
+    sf::RectangleShape bgRect;
+    float bgScrollOffset = 0.f;      // vertical offset in texture pixels
+    float bgScrollSpeed = 60.f;      // pixels per second (tweak as desired)
+    bool bgLoaded = false;
 };

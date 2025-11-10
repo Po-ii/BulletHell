@@ -13,10 +13,16 @@ public:
     void spawnSpiral(BulletManager& mgr);
     void spawnBurst(BulletManager& mgr);
 
+    void takeDamage(int dmg) { hp -= dmg; if (hp < 0) hp = 0; }
+    int getHP() const { return hp; }
+    const sf::CircleShape& getShape() const { return shape; }
+
 private:
     sf::Vector2f pos;
     sf::CircleShape shape;
     float spiralAngle;
+
+    int hp = 1000;
 
     // tir timing
     float shootTimer;
