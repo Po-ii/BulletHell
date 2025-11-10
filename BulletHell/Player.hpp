@@ -23,14 +23,11 @@ public:
 
 private:
     sf::Vector2f pos;
-    sf::CircleShape shape;
+    sf::CircleShape shape;   // collision / fallback circle
     float speed;
 
-    // sprite asset
-    sf::Texture texture;
-    sf::Sprite sprite; // <- use default construction (no brace-init)
-
-    bool spriteLoaded = false;
+    // draw a simple spaceship using SFML primitives (no assets)
+    sf::ConvexShape ship;
 
     int hp = 300;
 

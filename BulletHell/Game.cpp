@@ -126,7 +126,7 @@ void Game::update(float dt) {
         }
 
         // Collision bullets -> joueur
-        if (bullets.checkCollision(player.getPosition(), 8.f)) {
+        if (bullets.checkCollision(player.getPosition(), 16.f)) {
             player.takeDamage(5);
             if (player.getHP() <= 0) endGame(false); // défaite
         }
@@ -142,8 +142,8 @@ void Game::update(float dt) {
 void Game::render() {
     window.clear(sf::Color(12, 12, 20));
 
-    // draw repeated, scrolling background first
-    if (bgLoaded) {
+    // draw repeated, scrolling background except on the Main Menu / intro screen
+    if (bgLoaded && state != State::MainMenu) {
         window.draw(bgRect);
     }
 

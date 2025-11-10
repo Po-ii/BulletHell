@@ -50,12 +50,16 @@ void BulletManager::render(sf::RenderTarget& rt) {
 }
 
 bool BulletManager::checkCollision(const sf::Vector2f& point, float radius) {
-    float r2 = radius * radius;
     for (auto& b : pool) {
         if (!b.active) continue;
         float dx = b.pos.x - point.x;
         float dy = b.pos.y - point.y;
-        if (dx * dx + dy * dy < r2) return true;
+        float totalRadius = radius + b.radius;               // consider both radii
+        float r2 = totalRadius * totalRadius;
+        if (dx * dx + dy * dy < r2) {
+            b.active = false;                                // deactivate bullet on hit
+            return true;
+        }
     }
     return false;
 }

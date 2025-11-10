@@ -19,7 +19,15 @@ public:
 
 private:
     sf::Vector2f pos;
+
+    // outer white sclera used for collisions
     sf::CircleShape shape;
+
+    // extra shapes to render an "eye" appearance
+    sf::CircleShape iris;
+    sf::CircleShape pupil;
+    sf::CircleShape highlight;
+
     float spiralAngle;
 
     int hp = 1000;

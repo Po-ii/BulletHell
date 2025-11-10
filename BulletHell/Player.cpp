@@ -2,39 +2,45 @@
 #include "Player.hpp"
 #include <SFML/Window/Keyboard.hpp>
 #include <algorithm>
+#include <limits>
 
 Player::Player()
-    : sprite(texture) // construct sprite from the texture member (texture is declared before sprite)
 {
     pos = { 480.f, 620.f };
     speed = 300.f;
+
+    // collision circle (kept for collisions)
     shape.setRadius(8.f);
     shape.setOrigin(sf::Vector2f(8.f, 8.f));
-    shape.setFillColor(sf::Color::Cyan);
 
-    // Attempt to load a player sprite asset. Place the image at assets/player.png.
-    // If loading fails we keep the simple circle fallback.
-    if (texture.loadFromFile("assets/shipsheetparts.png")) {
-        sprite.setTexture(texture);
-        auto ts = texture.getSize();
-        // convert once to float to avoid repeated casts / narrowing warnings
-        float tsfX = static_cast<float>(ts.x);
-        float tsfY = static_cast<float>(ts.y);
+    // Build a simple triangular spaceship (nose up) scaled up
+    ship.setPointCount(3);
+    // local coordinates produce a ship that fits roughly inside 16x16 (diameter = 16)
+    ship.setPoint(0, sf::Vector2f(0.f, -16.f));   // nose
+    ship.setPoint(1, sf::Vector2f(-16.f, 16.f));  // left wing
+    ship.setPoint(2, sf::Vector2f(16.f, 16.f));   // right wing
+    ship.setFillColor(sf::Color(100, 220, 255)); // ship body color
+    ship.setOutlineThickness(1.f);
+    ship.setOutlineColor(sf::Color::Black);
 
-        // set origin to sprite center so positioning aligns with `pos`
-        sprite.setOrigin(sf::Vector2f(tsfX / 2.f, tsfY / 2.f));
+    // compute bounding box from the convex shape points (avoids using FloatRect members)
+    float minX = std::numeric_limits<float>::infinity();
+    float minY = std::numeric_limits<float>::infinity();
+    float maxX = -std::numeric_limits<float>::infinity();
+    float maxY = -std::numeric_limits<float>::infinity();
 
-        // scale sprite to match the circle size (diameter = 16)
-        const float desiredSize = 16.f;
-        if (ts.x > 0 && ts.y > 0) {
-            float scaleX = desiredSize / tsfX;
-            float scaleY = desiredSize / tsfY;
-            sprite.setScale(sf::Vector2f(scaleX, scaleY));
-        }
-        spriteLoaded = true;
-    } else {
-        spriteLoaded = false;
+    for (std::size_t i = 0; i < ship.getPointCount(); ++i) {
+        sf::Vector2f p = ship.getPoint(i);
+        minX = std::min(minX, p.x);
+        minY = std::min(minY, p.y);
+        maxX = std::max(maxX, p.x);
+        maxY = std::max(maxY, p.y);
     }
+
+    float centerX = (minX + maxX) * 0.5f;
+    float centerY = (minY + maxY) * 0.5f;
+    ship.setOrigin(sf::Vector2f(centerX, centerY));
+    ship.setPosition(pos);
 }
 
 void Player::update(float dt) {
@@ -49,22 +55,23 @@ void Player::update(float dt) {
     // clamp to screen area (assuming 960x720)
     pos.x = std::clamp(pos.x, 10.f, 960.f - 10.f);
     pos.y = std::clamp(pos.y, 10.f, 720.f - 10.f);
+
+    // keep visual shapes aligned with position
+    ship.setPosition(pos);
+    shape.setPosition(pos);
 }
 
 void Player::draw(sf::RenderTarget& rt) const {
-    if (spriteLoaded) {
-        sf::Sprite s = sprite;
-        s.setPosition(pos);
-        rt.draw(s);
-    } else {
-        sf::CircleShape s = shape;
-        s.setPosition(pos);
-        rt.draw(s);
-    }
+    // draw spaceship first, then (optionally) collision circle for debugging
+    rt.draw(ship);
+    // Uncomment to visualize collision circle:
+    // rt.draw(shape);
 }
 
 void Player::reset(const sf::Vector2f& p) {
     pos = p;
+    ship.setPosition(pos);
+    shape.setPosition(pos);
 }
 
 void Player::moveUp(float dt) { pos.y -= speed * dt; }
