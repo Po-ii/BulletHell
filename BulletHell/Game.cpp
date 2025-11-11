@@ -257,18 +257,26 @@ void Game::render() {
             window.draw(t);
         }
 
-        // UI
-        t.setCharacterSize(20);
+        // UI - player HP on left, enemy HP on right
+        {
+            // Player HP (left)
+            t.setCharacterSize(20);
+            t.setFillColor(sf::Color(0, 200, 0)); // green
+            t.setString("Player HP: " + std::to_string(player.getHP()));
+            t.setOrigin(sf::Vector2f(0.f, 0.f));
+            t.setPosition(sf::Vector2f(10.f, 10.f));
+            window.draw(t);
 
-        // Player HP (green)
-        t.setFillColor(sf::Color(0, 200, 0));
-        t.setString("Player HP: " + std::to_string(player.getHP()));
-        t.setPosition(sf::Vector2f(10.f, 10.f)); window.draw(t);
-
-        // Enemy HP (orange)
-        t.setFillColor(sf::Color(255, 165, 0));
-        t.setString("Enemy HP: " + std::to_string(enemies[0].getHP()));
-        t.setPosition(sf::Vector2f(700.f, 10.f)); window.draw(t);
+            // Enemy HP (right)
+            t.setCharacterSize(20);
+            t.setFillColor(sf::Color(255, 165, 0)); // orange
+            t.setString("Enemy HP: " + std::to_string(enemies.empty() ? 0 : enemies[0].getHP()));
+            // measure width and position against right edge
+            sf::Vector2f dims = computeTextDims(t);
+            t.setOrigin(sf::Vector2f(0.f, 0.f));
+            t.setPosition(sf::Vector2f(static_cast<float>(window.getSize().x) - dims.x - 10.f, 10.f));
+            window.draw(t);
+        }
 
         break;
 

@@ -9,7 +9,6 @@
 class Game {
 public:
     enum class State { MainMenu, Playing, GameOver };
-    LaserManager lasers;
     Game();
     ~Game();
     void run();
@@ -50,4 +49,6 @@ private:
     float bgScrollOffset = 0.f;      // vertical offset in texture pixels
     float bgScrollSpeed = 60.f;      // pixels per second (tweak as desired)
     bool bgLoaded = false;
+
+    LaserManager lasers;
 };
