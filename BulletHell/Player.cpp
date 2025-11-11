@@ -71,7 +71,7 @@ void Player::draw(sf::RenderTarget& rt) const {
 void Player::reset(const sf::Vector2f& p) {
     // reset position and gameplay-related state (health, shooting cooldown)
     pos = p;
-    hp = 300;            // restore default HP
+    hp = Player::DefaultHP; // use centralized default
     shootTimer = 0.f;    // allow immediate shooting
     // visual shapes will be updated in the next update() call
     ship.setPosition(pos);

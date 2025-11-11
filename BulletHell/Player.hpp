@@ -21,6 +21,9 @@ public:
     bool canShoot() const { return shootTimer <= 0.f; }
     void shoot() { shootTimer = shootCooldown; }
 
+    // default HP exposed for consistency
+    static constexpr int DefaultHP = 300;
+
 private:
     sf::Vector2f pos;
     sf::CircleShape shape;   // collision / fallback circle
@@ -29,7 +32,7 @@ private:
     // draw a simple spaceship using SFML primitives (no assets)
     sf::ConvexShape ship;
 
-    int hp = 300;
+    int hp = DefaultHP;
 
     float shootTimer = 0.f;
     const float shootCooldown = 0.3f;

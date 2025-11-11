@@ -4,11 +4,12 @@
 #include <sstream>
 #include <SFML/System.hpp>
 #include <iomanip>
+#include <iostream>
 
 typedef unsigned int Uint32;
 
 Game::Game()
-    : window(sf::VideoMode({ 960u, 720u }), "Bullet Hell - Mini Touhou")
+    : window(sf::VideoMode({ 960u, 720u }), "EyeStorm")
     , state(State::MainMenu)
     , player()
     , bullets(4000) // pool size
@@ -114,7 +115,7 @@ void Game::update(float dt) {
             timeLeftSeconds -= dt;
             if (timeLeftSeconds <= 0.f) {
                 timeLeftSeconds = 0.f;
-                endGame(true); // survived the timer -> win
+                endGame(false); // timer reached zero -> lose
                 return; // avoid further game logic this frame
             }
         }
@@ -161,12 +162,9 @@ void Game::render() {
         window.draw(bgRect);
     }
 
-    sf::Font f;
-    if (!f.openFromFile("assets/DejaVuSans.ttf")) {
-        // Handle error: font file not found or failed to load
-        // For now, just return to avoid drawing text with an invalid font
-        return;
-    }
+    // Use fonts provided by UI
+    const sf::Font& titleFont = ui.getTitleFont();
+    const sf::Font& bodyFont  = ui.getBodyFont();
 
     // helper: compute text block width/height without accessing FloatRect members
     auto computeTextDims = [](const sf::Text& txt) -> sf::Vector2f {
@@ -209,31 +207,42 @@ void Game::render() {
         txt.setPosition(sf::Vector2f(static_cast<float>(window.getSize().x) * 0.5f, y));
     };
 
-    sf::Text t(f, "");
+    // reusable body text object
+    sf::Text t(bodyFont, "");
 
     switch (state) {
     case State::MainMenu: {
-        // Title (cyan)
-        t.setString("EyeStorm");
-        t.setCharacterSize(64);
-        t.setFillColor(sf::Color(100, 220, 255)); // cyan
-        centerText(t, static_cast<float>(window.getSize().y) * 0.22f);
-        window.draw(t);
+        // Title (cyan) - use Press Start 2P (or bodyFont fallback)
+        sf::Text title(titleFont, "EyeStorm");
+        title.setCharacterSize(88);
+        title.setFillColor(sf::Color(100, 220, 255)); // cyan
+        title.setStyle(sf::Text::Bold);
+        centerText(title, static_cast<float>(window.getSize().y) * 0.22f);
+        window.draw(title);
 
-        // Short synopsis (multi-line) (light gray)
-        t.setCharacterSize(20);
-        t.setFillColor(sf::Color(200, 200, 200));
-        t.setString("Synopsis:\nYou are the last pilot defending humanity\ntrying to make it back to your home planet Veyra.\nSuddenly attacked by an onslaught of eye-like enemies.\nDodge patterns and eliminate the threat.");
-        // center the block a bit lower
-        centerText(t, static_cast<float>(window.getSize().y) * 0.48f);
-        window.draw(t);
+        // "Synopsis" header: bold + underlined (use body font)
+        sf::Text synopsisHeader(bodyFont, "Synopsis:");
+        synopsisHeader.setCharacterSize(24);
+        synopsisHeader.setFillColor(sf::Color(200, 200, 200));
+        synopsisHeader.setStyle(sf::Text::Bold | sf::Text::Underlined);
+        centerText(synopsisHeader, static_cast<float>(window.getSize().y) * 0.42f);
+        window.draw(synopsisHeader);
 
-        // Controls / prompt (yellow)
-        t.setCharacterSize(18);
-        t.setFillColor(sf::Color(255, 215, 0)); // gold
-        t.setString("Controls: ZQSD (Azety) or WASD (Qwerty) to move  -  SPACE to shoot\nPress SPACE to start");
-        centerText(t, static_cast<float>(window.getSize().y) * 0.78f);
-        window.draw(t);
+        // Synopsis body (regular, not underlined)
+        sf::Text synopsisBody(bodyFont, "\n\n\nYou are the last pilot defending humanity\ntrying to make it back to your home planet Veyra.\nSuddenly attacked by an onslaught of eye-like enemies.\nDodge patterns and eliminate the threat.\n\nFor this demo, there's only 1 level.");
+        synopsisBody.setCharacterSize(24);
+        synopsisBody.setFillColor(sf::Color(200, 200, 200));
+        synopsisBody.setStyle(sf::Text::Regular);
+        centerText(synopsisBody, static_cast<float>(window.getSize().y) * 0.52f);
+        window.draw(synopsisBody);
+
+        // Controls / prompt (yellow) - use body font
+        sf::Text controls(bodyFont, "Controls: ZQSD (Azety) or WASD (Qwerty) to move  -  SPACE to shoot\nPress SPACE to start");
+        controls.setCharacterSize(20);
+        controls.setFillColor(sf::Color(255, 215, 0)); // gold
+        controls.setStyle(sf::Text::Regular);
+        centerText(controls, static_cast<float>(window.getSize().y) * 0.78f);
+        window.draw(controls);
         break;
     }
 
@@ -250,8 +259,9 @@ void Game::render() {
             int minutes = total / 60;
             int seconds = total % 60;
             ss << std::setw(2) << std::setfill('0') << minutes << ":" << std::setw(2) << std::setfill('0') << seconds;
-            t.setCharacterSize(24);
+            t.setCharacterSize(28); // increased
             t.setFillColor(sf::Color(255, 215, 0)); // gold
+            t.setStyle(sf::Text::Regular);
             t.setString(ss.str());
             centerText(t, 30.f);
             window.draw(t);
@@ -260,15 +270,16 @@ void Game::render() {
         // UI - player HP on left, enemy HP on right
         {
             // Player HP (left)
-            t.setCharacterSize(20);
+            t.setCharacterSize(24); // increased
             t.setFillColor(sf::Color(0, 200, 0)); // green
+            t.setStyle(sf::Text::Regular);
             t.setString("Player HP: " + std::to_string(player.getHP()));
             t.setOrigin(sf::Vector2f(0.f, 0.f));
             t.setPosition(sf::Vector2f(10.f, 10.f));
             window.draw(t);
 
             // Enemy HP (right)
-            t.setCharacterSize(20);
+            t.setCharacterSize(24); // increased
             t.setFillColor(sf::Color(255, 165, 0)); // orange
             t.setString("Enemy HP: " + std::to_string(enemies.empty() ? 0 : enemies[0].getHP()));
             // measure width and position against right edge
@@ -294,26 +305,65 @@ void Game::render() {
         window.draw(overlay);
 
         // Result title (centered) - color depends on outcome
-        t.setCharacterSize(48);
-        if (lastVictory) t.setFillColor(sf::Color(100, 255, 150)); // light green
-        else t.setFillColor(sf::Color(255, 100, 100)); // light red
-        t.setString(gameOverMessage);
-        centerText(t, static_cast<float>(window.getSize().y) * 0.38f);
-        window.draw(t);
+        {
+            std::string firstLine;
+            std::string rest;
 
-        // Score / summary (light gray)
-        t.setCharacterSize(20);
-        t.setFillColor(sf::Color(200,200,200));
-        t.setString("Final Score: " + std::to_string(score));
-        centerText(t, static_cast<float>(window.getSize().y) * 0.52f);
-        window.draw(t);
+            auto pos = gameOverMessage.find('\n');
+            if (pos != std::string::npos) {
+                firstLine = gameOverMessage.substr(0, pos);
+                rest = gameOverMessage.substr(pos + 1);
+            } else {
+                firstLine = gameOverMessage;
+            }
 
-        // Restart prompt (yellow)
-        t.setCharacterSize(18);
-        t.setFillColor(sf::Color(255, 215, 0));
-        t.setString("Press SPACE to restart");
-        centerText(t, static_cast<float>(window.getSize().y) * 0.7f);
-        window.draw(t);
+            // First line (big)
+            t.setCharacterSize(56); // increased
+            t.setStyle(sf::Text::Regular);
+            if (lastVictory) t.setFillColor(sf::Color(100, 255, 150)); // light green
+            else t.setFillColor(sf::Color(255, 100, 100)); // light red
+            t.setString(firstLine);
+            centerText(t, static_cast<float>(window.getSize().y) * 0.38f);
+            window.draw(t);
+
+            // Rest (smaller, same color)
+            if (!rest.empty()) {
+                sf::Text t2(bodyFont, rest);
+                t2.setCharacterSize(28);
+                t2.setFillColor(t.getFillColor());
+                t2.setStyle(sf::Text::Regular);
+                centerText(t2, static_cast<float>(window.getSize().y) * 0.48f);
+                window.draw(t2);
+            }
+
+            // If victory, show demo end message and different prompt
+            if (lastVictory) {
+                sf::Text t3(bodyFont, "End of the demo");
+                t3.setCharacterSize(24);
+                t3.setFillColor(sf::Color(200, 200, 200));
+                t3.setStyle(sf::Text::Regular);
+                centerText(t3, static_cast<float>(window.getSize().y) * 0.56f);
+                window.draw(t3);
+
+                // Prompt: replay or exit (ESC already closes the window)
+                t.setCharacterSize(20); // increased
+                t.setFillColor(sf::Color(255, 215, 0));
+                t.setStyle(sf::Text::Regular);
+                t.setString("Press SPACE to replay or ESC to exit");
+                centerText(t, static_cast<float>(window.getSize().y) * 0.76f);
+                window.draw(t);
+            }
+        }
+
+        // If not a victory, keep the original simple restart prompt
+        if (!lastVictory) {
+            t.setCharacterSize(20); // increased
+            t.setFillColor(sf::Color(255, 215, 0));
+            t.setStyle(sf::Text::Regular);
+            t.setString("Press SPACE to restart");
+            centerText(t, static_cast<float>(window.getSize().y) * 0.76f);
+            window.draw(t);
+        }
 
         break;
     }
@@ -345,5 +395,6 @@ void Game::startGame() {
 void Game::endGame(bool victory) {
     state = State::GameOver;
     lastVictory = victory;
-    gameOverMessage = victory ? "Congratulations! You made it safe back home." : "GAME OVER! YOU DIED!";
+    // put a newline after the "Congratulations!" so it appears on its own line
+    gameOverMessage = victory ? "Congratulations!\nYou made it safe back home." : "GAME OVER! YOU DIED!";
 }
